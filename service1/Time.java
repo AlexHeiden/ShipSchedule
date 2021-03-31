@@ -1,10 +1,12 @@
 package service1;
 
+import java.security.InvalidParameterException;
+
 public class Time implements Comparable<Time>
 {
-    private int day;
-    private int hour;
-    private int minute;
+    private long day;
+    private long hour;
+    private long minute;
 
     public static final int maxDay = 30;
     public static final int maxHour = 23;
@@ -17,11 +19,11 @@ public class Time implements Comparable<Time>
         minute = 0;
     }
 
-    public Time(int day, int hour, int minute)
+    public Time(long day, long hour, long minute)
     {
         try
         {
-            if ((day < 0) || (maxDay > 30) || (hour < 0) || (hour > maxHour) || (minute < 0) || (minute > 59))
+            if ((hour < 0) || (hour > maxHour) || (minute < 0) || (minute > maxMinute))
             {
                 throw new IllegalArgumentException();
             }
@@ -54,64 +56,50 @@ public class Time implements Comparable<Time>
         String[] timeParameters = string.split(":");
 
         try {
-            try {
-                int temp = Integer.parseInt(timeParameters[0]);
+                long tempDay = Long.parseLong(timeParameters[0]);
+                day = tempDay;
 
-                if (temp < 1 || temp > maxDay) {
+            try {
+                long tempHour = Long.parseLong(timeParameters[1]);
+
+                if (tempHour < 0 || tempHour > maxHour) {
                     throw new IllegalArgumentException();
                 }
 
-                day = temp;
+                hour = tempHour;
             } catch (IllegalArgumentException e) {
-                System.out.println("Day argument must be between 1 and 30 inclusive");
-                System.exit(-1);
+                e.printStackTrace();
             }
 
             try {
-                int temp = Integer.parseInt(timeParameters[1]);
+                long tempMinute = Long.parseLong(timeParameters[2]);
 
-                if (temp < 0 || temp > maxHour) {
+                if (tempMinute < 0 || tempMinute > maxMinute) {
                     throw new IllegalArgumentException();
                 }
 
-                hour = temp;
+                minute = tempMinute;
             } catch (IllegalArgumentException e) {
-                System.out.println("Hour argument must be between 0 and 23 inclusive");
-                System.exit(-1);
-            }
-
-            try {
-                int temp = Integer.parseInt(timeParameters[2]);
-
-                if (temp < 0 || temp > maxMinute) {
-                    throw new IllegalArgumentException();
-                }
-
-                minute = temp;
-            } catch (IllegalArgumentException e) {
-                System.out.println("Minute argument must be between 0 and 59 inclusive");
-                System.exit(-1);
+                e.printStackTrace();
             }
         }
         catch (Exception e)
         {
-            System.out.println("You must input time arguments this way: dd:hh:mm");
-            System.exit(-1);
+            e.printStackTrace();
         }
-
     }
 
-    public int getDay()
+    public long getDay()
     {
         return day;
     }
 
-    public int getHour()
+    public long getHour()
     {
         return hour;
     }
 
-    public int getMinute()
+    public long getMinute()
     {
         return minute;
     }
@@ -159,21 +147,59 @@ public class Time implements Comparable<Time>
 
     public void addMinutes(double minute)
     {
+        try {
+            if (minute < 0) {
+                throw new InvalidParameterException();
+            }
+        }
+        catch(InvalidParameterException e) {
+            e.printStackTrace();
+        }
+
         int minuteToAdd = (int)minute;
         this.minute += minuteToAdd;
 
-        int hourToAdd = this.minute / 60;
+        long hourToAdd = this.minute / 60;
         this.minute %= 60;
         this.hour += hourToAdd;
 
-        int dayToAdd = this.hour / 24;
+        long dayToAdd = this.hour / 24;
         this.hour %= 24;
         this.day += dayToAdd;
     }
 
-    public static Time getRandomTime()
+    public void addTime(Time time)
     {
-        int day = (int)(Math.random() * (maxDay) + 1);
+        try {
+            if (time.day < 0 || time.hour < 0 || time.minute < 0) {
+                throw new InvalidParameterException();
+            }
+        }
+        catch (InvalidParameterException e) {
+            e.printStackTrace();
+        }
+
+        addMinutes(time.getTimeInMinutes());
+    }
+
+    public long getTimeInMinutes() {
+        return minute + 60 * (hour + 24 * day);
+    }
+
+    public Time getTimeOutOfMinutes(long minutes) {
+        long tempMinute = minutes;
+        long tempHour = minutes / (maxMinute + 1);
+        tempMinute %= (maxMinute + 1);
+
+        long tempDay = tempHour / (maxHour + 1);
+        tempHour %= (maxHour + 1);
+
+        return new Time(tempDay, tempHour, tempMinute);
+    }
+
+    public static Time getRandomTime(int numberOfDays)
+    {
+        int day = (int)(Math.random() * numberOfDays);
         int hour = (int)(Math.random() * (maxHour));
         int minute = (int)(Math.random() * (maxMinute));
         return new Time(day, hour, minute);

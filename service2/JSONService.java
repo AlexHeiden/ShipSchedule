@@ -19,14 +19,19 @@ public class JSONService
 {
     public static final String scheduleFileName = System.getProperty("user.dir") + "/scheduleFile.json";
 
-    public static void getScheduleForModel(int numberOfShips,
-                                           double minWeight,
-                                           double maxWeight)
-    {
-        LinkedList<ScheduleElement> scheduleList = new Schedule(numberOfShips,
-            minWeight,
-            maxWeight).getScheduleElementList();
+    private LinkedList<ScheduleElement> scheduleList;
 
+    public JSONService(int numberOfShips,
+                       double minWeight,
+                       double maxWeight)
+    {
+        scheduleList = new Schedule(numberOfShips,
+                minWeight,
+                maxWeight).getScheduleElementList();
+    }
+
+    public void getScheduleForModel()
+    {
         JSONObject keeper = toJSON(scheduleList);
         try
         {
@@ -40,32 +45,9 @@ public class JSONService
         }
     }
 
-    private static JSONObject toJSON(LinkedList<ScheduleElement> scheduleList)
+    public void addElementToSchedule(ScheduleElement scheduleElement)
     {
-        JSONObject obj = new JSONObject();
-        JSONArray array = new JSONArray();
-        for (ScheduleElement scheduleElement: scheduleList)
-        {
-            JSONObject temp = new JSONObject();
-            temp.put("arrivingTime", toJSON(scheduleElement.getArrivingTime()));
-            temp.put("name", scheduleElement.getName());
-            temp.put("cargoType", scheduleElement.getCargoType().toString());
-            temp.put("weight", scheduleElement.getWeight());
-            temp.put("unloadingTime", toJSON(scheduleElement.getUnloadingTime()));
-            array.add(temp);
-        }
-
-        obj.put("scheduleList", array);
-        return obj;
-    }
-
-    private static JSONObject toJSON(Time time)
-    {
-        JSONObject obj = new JSONObject();
-        obj.put("day", time.getDay());
-        obj.put("hour", time.getHour());
-        obj.put("minute", time.getMinute());
-        return obj;
+        scheduleList.add(scheduleElement);
     }
 
     public static LinkedList<ScheduleElement> getScheduleListFromJSON()
@@ -82,18 +64,17 @@ public class JSONService
 
                 CargoType cargoType;
                 String cargoName = temp.get("cargoType").toString();
-                if (cargoName == CargoType.CONTAINER.toString()) {
+                if (cargoName.equals(CargoType.CONTAINER.toString())) {
                     cargoType = CargoType.CONTAINER;
-                } else if (cargoName == CargoType.LOOSE.toString()) {
+                } else if (cargoName.equals(CargoType.LOOSE.toString())) {
                     cargoType = CargoType.LOOSE;
                 } else {
                     cargoType = CargoType.LIQUID;
                 }
 
                 double weight = Double.parseDouble(temp.get("weight").toString());
-                Time unloadingTime = getTimeFromJSON((JSONObject) temp.get("unloadingTime"));
 
-                scheduleList.add(new ScheduleElement(arrivingTime, name, cargoType, weight, unloadingTime));
+                scheduleList.add(new ScheduleElement(arrivingTime, name, cargoType, weight));
             }
             return scheduleList;
         }
@@ -114,5 +95,36 @@ public class JSONService
         return new Time(Integer.parseInt(obj.get("day").toString()),
                 Integer.parseInt(obj.get("hour").toString()),
                 Integer.parseInt(obj.get("minute").toString()));
+    }
+
+    private JSONObject toJSON(LinkedList<ScheduleElement> scheduleList)
+    {
+        JSONObject obj = new JSONObject();
+        JSONArray array = new JSONArray();
+        for (ScheduleElement scheduleElement: scheduleList) {
+            array.add(toJSON(scheduleElement));
+        }
+
+        obj.put("scheduleList", array);
+        return obj;
+    }
+
+    private JSONObject toJSON(ScheduleElement scheduleElement)
+    {
+        JSONObject obj = new JSONObject();
+        obj.put("arrivingTime", toJSON(scheduleElement.getArrivingTime()));
+        obj.put("name", scheduleElement.getName());
+        obj.put("cargoType", scheduleElement.getCargoType().toString());
+        obj.put("weight", scheduleElement.getWeight());
+        return obj;
+    }
+
+    private JSONObject toJSON(Time time)
+    {
+        JSONObject obj = new JSONObject();
+        obj.put("day", time.getDay());
+        obj.put("hour", time.getHour());
+        obj.put("minute", time.getMinute());
+        return obj;
     }
 }

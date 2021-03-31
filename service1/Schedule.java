@@ -1,7 +1,5 @@
 package service1;
 
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.LinkedList;
 
 public class Schedule
@@ -41,7 +39,7 @@ public class Schedule
 
         for (int i = 0; i < numberOfShipsToStore; i++)
         {
-            Time time = Time.getRandomTime();
+            Time time = Time.getRandomTime(Time.maxDay);
 
             numberOfShipsInSchedule++;
             String name = beginningOfShipName + numberOfShipsInSchedule;
@@ -66,29 +64,9 @@ public class Schedule
             double weight = Math.random() * (maxWeight - minWeight)
                     + minWeight;
 
-            Time unloadingTime = new Time(0, 0, 0);
-            switch (cargoType)
-            {
-                case CONTAINER: {
-                    weight = (int)(weight + 1);
-                    unloadingTime.addMinutes((Time.maxMinute + 1) * (weight / containerUnitUnloadingPerHour));
-                    break;
-                }
-                case LOOSE: {
-                    unloadingTime.addMinutes((Time.maxMinute + 1) * (weight / looseUnitUnloadingPerHour));
-                    break;
-                }
-                default: {
-                    unloadingTime.addMinutes((Time.maxMinute + 1) * (weight / liquidUnitUnloadingPerHour));
-                    break;
-                }
-            }
 
-            scheduleElementList.add(new ScheduleElement(time, name, cargoType, weight, unloadingTime));
+            scheduleElementList.add(new ScheduleElement(time, name, cargoType, weight));
         }
-        Comparator<ScheduleElement> comparator = (element1, element2)
-                -> element1.getArrivingTime().compareTo(element2.getArrivingTime());
-        Collections.sort(scheduleElementList, comparator);
     }
 
     public LinkedList<ScheduleElement> getScheduleElementList() { return scheduleElementList; }
