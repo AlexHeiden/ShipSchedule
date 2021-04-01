@@ -26,11 +26,15 @@ public class CargoThread implements Runnable {
             compareTo(element2.getScheduleElement().getArrivingTime());
 
     public CargoThread(LinkedList<ScheduleElementKeeper> arrivingCargoList, int numberOfCranes)
-    {
+    { // посмотреть, почему не разгружается груз
         this.arrivingCargoList = new LinkedList<ScheduleElementKeeper>(arrivingCargoList);
         arrivedCargoList = new LinkedList<ScheduleElementKeeper>();
         unloadedCargoList = new LinkedList<ScheduleElementKeeper>();
         arrayOfCranes = new Crane[numberOfCranes];
+
+        for (int i = 0; i < arrayOfCranes.length; i++) {
+            arrayOfCranes[i] = new Crane();
+        }
         this.numberOfCranes = numberOfCranes;
         numberOfBusyCranes = 0;
         queueLength = 0;
@@ -63,7 +67,7 @@ public class CargoThread implements Runnable {
         numberOfQueueEvents++;
         queueLength += countUnbusyShips();
 
-        while (!arrivingCargoList.isEmpty() && !arrivedCargoList.isEmpty()) {
+        while (!arrivingCargoList.isEmpty() || !arrivedCargoList.isEmpty()) {
             double nearestEventInMinutes = getNearestEventInMinutes();
             modelTime.addMinutes(nearestEventInMinutes);
 
@@ -88,6 +92,8 @@ public class CargoThread implements Runnable {
         return arrivedCargoList;
     }
 
+    public LinkedList<ScheduleElementKeeper> getUnloadedCargoList() { return unloadedCargoList; }
+
     public double getQueueLength() {
         return queueLength;
     }
@@ -98,7 +104,7 @@ public class CargoThread implements Runnable {
 
     private void addTimeDeviations(ScheduleElementKeeper cargo) {
         cargo.checkMinutesForUnloading();
-        int unloadingMinutesDelay = (int)Math.random() * (maxUnloadingMinutesDelay + 1);
+        int unloadingMinutesDelay = (int)(Math.random() * maxUnloadingMinutesDelay);
         cargo.addMinutesForUnloading(unloadingMinutesDelay);
 
         Time deviatedArrivingTime = new Time(-(arrivingDaysDeviationWindow / 2) + 1,0 ,0);
@@ -124,7 +130,8 @@ public class CargoThread implements Runnable {
 
         if (!arrivingCargoList.isEmpty()) {
             if (arrivingCargoList.getFirst().getActualArrivingTime().getTimeInMinutes()
-                    - modelTime.getTimeInMinutes() < minute) {
+                    - modelTime.getTimeInMinutes() < minute
+                    || minute < 0) {
                 minute = arrivingCargoList.getFirst().getActualArrivingTime().getTimeInMinutes()
                         - modelTime.getTimeInMinutes();
             }
@@ -135,8 +142,7 @@ public class CargoThread implements Runnable {
 
     private void getArrivingCargosIntoArrivedList() {
         while (!arrivingCargoList.isEmpty()) {
-            if (arrivingCargoList.getFirst().getActualArrivingTime()
-                    == modelTime) {
+            if (arrivingCargoList.getFirst().getActualArrivingTime().equals(modelTime)) {
                 arrivedCargoList.add(arrivingCargoList.removeFirst());
             } else {
                 break;
@@ -165,8 +171,15 @@ public class CargoThread implements Runnable {
                     if (numberOfCargoCranes != 2) {
                         doesEveryCargoHaveTwoCranes = false;
 
+                        long minutesOfAriving = Math.max(cargo.getScheduleElement()
+                                        .getArrivingTime()
+                                        .getTimeInMinutes(),
+                                cargo.getActualArrivingTime()
+                                        .getTimeInMinutes());
                         long minutesOfLocalCargoIdling = modelTime.getTimeInMinutes()
-                                - cargo.getScheduleElement().getArrivingTime().getTimeInMinutes();
+                                - cargo.getScheduleElement()
+                                .getArrivingTime()
+                                .getTimeInMinutes();
 
                         if (i == 0 || minutesOfLocalCargoIdling > minutesOfIdlingInPort) {
                             indexOfTheMostIdlingCargo = i;

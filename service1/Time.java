@@ -140,6 +140,12 @@ public class Time implements Comparable<Time>
         return  0;
     }
 
+    public boolean equals(Time time) {
+        return day == time.getDay()
+                && hour == time.getHour()
+                && minute == time.getMinute();
+    }
+
     public void printTime()
     {
         System.out.println("" + day / 10 + day % 10 + ":" + hour / 10 + hour % 10 + ":" + minute / 10 + minute % 10);

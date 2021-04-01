@@ -11,48 +11,53 @@ public class StatisticsGetter implements Runnable{
     public final static int defaultNumberOfCranes = 1;
 
     private LinkedList<ScheduleElementKeeper> listForCargoThread;
+    private LinkedList<ScheduleElementKeeper> finalListOfUnloadedCargos;
     private int numberOfCranes;
     private double fineValue;
     private int queueLength;
     private int numberOfQueueEvents;
 
     public StatisticsGetter(LinkedList<ScheduleElementKeeper> list) {
-        listForCargoThread = list;
+        listForCargoThread = new LinkedList<>(list);
         numberOfCranes = 0;
         fineValue = 0;
     }
 
     public void run() {
-        double oldFineValue = 1;
-
-        while (fineValue <= oldFineValue) {
-            oldFineValue = fineValue;
+        if (listForCargoThread.isEmpty()) {
             queueLength = 0;
             numberOfQueueEvents = 0;
-            numberOfCranes++;
-            for (int i = 0; i < numberOfCargoThreadLaunches; i++) {
-                CargoThread cargoThread = new CargoThread(listForCargoThread, numberOfCranes);
-                Thread thread = new Thread(cargoThread);
-                thread.start();
-                try {
-                    thread.join();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
+            finalListOfUnloadedCargos = new LinkedList<ScheduleElementKeeper>();
+        } else {
+            double oldFineValue = 1;
+
+            while (fineValue < oldFineValue) {
+                oldFineValue = fineValue;
+                queueLength = 0;
+                numberOfQueueEvents = 0;
+                numberOfCranes++;
+                for (int i = 0; i < numberOfCargoThreadLaunches; i++) {
+                    CargoThread cargoThread = new CargoThread(listForCargoThread, numberOfCranes);
+                    Thread thread = new Thread(cargoThread);
+                    thread.start();
+                    try {
+                        thread.join();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+
+                    fineValue += getFineValue(cargoThread.getArrivedCargoList(), numberOfCranes);
+                    queueLength += cargoThread.getQueueLength();
+                    numberOfQueueEvents += cargoThread.getNumberOfQueueEvents();
+                    finalListOfUnloadedCargos = cargoThread.getUnloadedCargoList();
                 }
 
-                fineValue += getFineValue(cargoThread.getArrivedCargoList(), numberOfCranes);
-                queueLength += cargoThread.getQueueLength();
-                numberOfQueueEvents += cargoThread.getNumberOfQueueEvents();
+                fineValue /= numberOfCargoThreadLaunches;
             }
 
-            fineValue /= numberOfCargoThreadLaunches;
-
-            if (numberOfCranes == 1) {
-                oldFineValue = fineValue;
-            }
+            fineValue = oldFineValue;
+            numberOfCranes--;
         }
-
-        fineValue = oldFineValue;
     }
 
     public double getOverallFine() {
@@ -112,7 +117,7 @@ public class StatisticsGetter implements Runnable{
             e.printStackTrace();
         }
 
-        return listForCargoThread;
+        return finalListOfUnloadedCargos;
     }
 
     private long getFineValue(LinkedList<ScheduleElementKeeper> cargoList, int numberOfCranes) {

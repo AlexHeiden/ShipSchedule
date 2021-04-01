@@ -15,8 +15,6 @@ public class ModelPreparer {
     private LinkedList<ScheduleElementKeeper> containerList = new LinkedList<ScheduleElementKeeper>();
     private LinkedList<ScheduleElementKeeper> looseList = new LinkedList<ScheduleElementKeeper>();
     private LinkedList<ScheduleElementKeeper> liquidList = new LinkedList<ScheduleElementKeeper>();
-    private double[] previousFines = new double[] {1, 1, 1};
-    private double[] oneCircleFines = new double[] {0, 0, 0};
     private Comparator<ScheduleElementKeeper> comparator = (element1, element2)
             -> element1.getActualArrivingTime().
             compareTo(element2.getActualArrivingTime());

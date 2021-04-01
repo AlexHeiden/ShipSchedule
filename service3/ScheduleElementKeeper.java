@@ -52,8 +52,12 @@ public class ScheduleElementKeeper {
 
     public void print() {
         Time waitForStartUnloadingTime = new Time(0,0,0);
-        waitForStartUnloadingTime.addMinutes(startUnloadingTime.getTimeInMinutes()
-                - actualArrivingTime.getTimeInMinutes());
+        long waitMinutes = startUnloadingTime.getTimeInMinutes()
+                - actualArrivingTime.getTimeInMinutes();
+        if (waitMinutes < 0) {
+            waitMinutes = 0;
+        }
+        waitForStartUnloadingTime.addMinutes(waitMinutes);
 
         Time unloadingDuration = new Time(0,0,0);
         unloadingDuration.addMinutes(finishUnloadingTime.getTimeInMinutes()
