@@ -14,8 +14,7 @@ public class ScheduleElementKeeper {
     private Time startUnloadingTime;
     private Time finishUnloadingTime;
 
-    public ScheduleElementKeeper(ScheduleElement scheduleElement)
-    {
+    public ScheduleElementKeeper(ScheduleElement scheduleElement) {
         isFinished = false;
         this.scheduleElement = scheduleElement;
         numberOfCranes = 0;
@@ -24,6 +23,17 @@ public class ScheduleElementKeeper {
         actualArrivingTime = new Time(0,0,0);
         startUnloadingTime = new Time(0,0,0);
         finishUnloadingTime = new Time(0,0,0);
+    }
+
+    public ScheduleElementKeeper(ScheduleElementKeeper cargo) {
+        this.isFinished = cargo.isFinished;
+        this.scheduleElement = new ScheduleElement(cargo.getScheduleElement());
+        this.numberOfCranes = cargo.numberOfCranes;
+        this.minutesUnloaded = cargo.minutesUnloaded;
+        this.minutesForUnloading = cargo.minutesForUnloading;
+        this.actualArrivingTime = new Time(cargo.actualArrivingTime);
+        this.startUnloadingTime = new Time(cargo.startUnloadingTime);
+        this.finishUnloadingTime = new Time(cargo.finishUnloadingTime);
     }
 
     public void finish() { isFinished = true; }

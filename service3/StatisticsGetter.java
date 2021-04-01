@@ -32,12 +32,13 @@ public class StatisticsGetter implements Runnable{
             double oldFineValue = 1;
 
             while (fineValue < oldFineValue) {
-                oldFineValue = fineValue;
                 queueLength = 0;
                 numberOfQueueEvents = 0;
                 numberOfCranes++;
                 for (int i = 0; i < numberOfCargoThreadLaunches; i++) {
-                    CargoThread cargoThread = new CargoThread(listForCargoThread, numberOfCranes);
+                    CargoThread cargoThread = new CargoThread(
+                            (LinkedList<ScheduleElementKeeper>) listForCargoThread.clone(),
+                            numberOfCranes);
                     Thread thread = new Thread(cargoThread);
                     thread.start();
                     try {
@@ -46,13 +47,17 @@ public class StatisticsGetter implements Runnable{
                         e.printStackTrace();
                     }
 
-                    fineValue += getFineValue(cargoThread.getArrivedCargoList(), numberOfCranes);
+                    fineValue += getFineValue(cargoThread.getArrivedCargoList());
+                    fineValue += getFineValueFromCranes(numberOfCranes);
                     queueLength += cargoThread.getQueueLength();
                     numberOfQueueEvents += cargoThread.getNumberOfQueueEvents();
                     finalListOfUnloadedCargos = cargoThread.getUnloadedCargoList();
                 }
 
                 fineValue /= numberOfCargoThreadLaunches;
+                if (fineValue == 0) {
+                    break;
+                }
             }
 
             fineValue = oldFineValue;
@@ -120,8 +125,8 @@ public class StatisticsGetter implements Runnable{
         return finalListOfUnloadedCargos;
     }
 
-    private long getFineValue(LinkedList<ScheduleElementKeeper> cargoList, int numberOfCranes) {
-        long fine = (numberOfCranes - defaultNumberOfCranes) * additionalCraneFine;
+    private long getFineValue(LinkedList<ScheduleElementKeeper> cargoList) {
+        long fine = 0;
 
         for (ScheduleElementKeeper cargo: cargoList) {
             long theoreticalFinishTimeInMinutes = cargo.getScheduleElement().getArrivingTime().getTimeInMinutes()
@@ -135,5 +140,9 @@ public class StatisticsGetter implements Runnable{
         }
 
         return fine;
+    }
+
+    private long getFineValueFromCranes(int numberOfCranes) {
+        return (numberOfCranes - defaultNumberOfCranes) * additionalCraneFine;
     }
 }

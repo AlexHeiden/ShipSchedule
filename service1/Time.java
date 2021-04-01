@@ -38,6 +38,12 @@ public class Time implements Comparable<Time>
         this.minute = minute;
     }
 
+    public Time(Time time) {
+        day = time.day;
+        hour = time.hour;
+        minute = time.minute;
+    }
+
     public Time(String string)
     {
         try
@@ -87,6 +93,12 @@ public class Time implements Comparable<Time>
         {
             e.printStackTrace();
         }
+    }
+
+    public void makeEqual(Time time) {
+        day = time.getDay();
+        hour = time.getHour();
+        minute = time.getMinute();
     }
 
     public long getDay()

@@ -66,6 +66,14 @@ public class ScheduleElement
         }
     }
 
+    public ScheduleElement(ScheduleElement scheduleElement) {
+        this.arrivingTime = new Time(scheduleElement.getArrivingTime());
+        name = scheduleElement.getName();
+        cargoType = scheduleElement.getCargoType();
+        weight = scheduleElement.getWeight();
+        unloadingTime = new Time(scheduleElement.getUnloadingTime());
+    }
+
     public Time getArrivingTime()
     {
         return arrivingTime;
