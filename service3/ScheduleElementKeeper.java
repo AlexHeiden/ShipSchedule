@@ -47,10 +47,10 @@ public class ScheduleElementKeeper {
     }
     public void setActualArrivingTime(Time time)
     {
-        actualArrivingTime = time;
+        actualArrivingTime = new Time(time);
     }
-    public void setStartUnloadingTime(Time time) { startUnloadingTime = time; }
-    public void setFinishUnloadingTime(Time time) { finishUnloadingTime = time; }
+    public void setStartUnloadingTime(Time time) { startUnloadingTime = new Time(time); }
+    public void setFinishUnloadingTime(Time time) { finishUnloadingTime = new Time(time); }
     public ScheduleElement getScheduleElement() { return scheduleElement; }
     public int getNumberOfCranes() { return numberOfCranes; }
     public long getMinutesUnloaded() { return minutesUnloaded; }

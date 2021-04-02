@@ -13,8 +13,7 @@ public class ScheduleElement
     public ScheduleElement(Time arrivingTime, String name, CargoType cargoType, double weight)
     {
         try {
-            if (arrivingTime.getDay() <= 0 || arrivingTime.getDay() > Time.maxDay ||
-                    arrivingTime.getHour() < 0 || arrivingTime.getHour() > Time.maxHour ||
+            if (arrivingTime.getHour() < 0 || arrivingTime.getHour() > Time.maxHour ||
                     arrivingTime.getMinute() < 0 || arrivingTime.getMinute() > Time.maxMinute) {
                 throw new InvalidParameterException();
             }

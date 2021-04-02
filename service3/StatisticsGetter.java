@@ -2,6 +2,7 @@ package service3;
 
 import service1.Time;
 
+import java.beans.IntrospectionException;
 import java.util.LinkedList;
 
 public class StatisticsGetter implements Runnable{
@@ -12,6 +13,7 @@ public class StatisticsGetter implements Runnable{
 
     private LinkedList<ScheduleElementKeeper> listForCargoThread;
     private LinkedList<ScheduleElementKeeper> finalListOfUnloadedCargos;
+    private CargoThread cargoThread;
     private int numberOfCranes;
     private double fineValue;
     private int queueLength;
@@ -29,14 +31,12 @@ public class StatisticsGetter implements Runnable{
             numberOfQueueEvents = 0;
             finalListOfUnloadedCargos = new LinkedList<ScheduleElementKeeper>();
         } else {
-            double oldFineValue = 1;
+            double oldFineValue = Integer.MAX_VALUE;
 
-            while (fineValue < oldFineValue) {
-                queueLength = 0;
-                numberOfQueueEvents = 0;
+            while (fineValue <= oldFineValue) {
                 numberOfCranes++;
                 for (int i = 0; i < numberOfCargoThreadLaunches; i++) {
-                    CargoThread cargoThread = new CargoThread(
+                    cargoThread = new CargoThread(
                             (LinkedList<ScheduleElementKeeper>) listForCargoThread.clone(),
                             numberOfCranes);
                     Thread thread = new Thread(cargoThread);
@@ -51,12 +51,20 @@ public class StatisticsGetter implements Runnable{
                     fineValue += getFineValueFromCranes(numberOfCranes);
                     queueLength += cargoThread.getQueueLength();
                     numberOfQueueEvents += cargoThread.getNumberOfQueueEvents();
-                    finalListOfUnloadedCargos = cargoThread.getUnloadedCargoList();
                 }
 
                 fineValue /= numberOfCargoThreadLaunches;
+
+                if (numberOfCranes == 1 || fineValue <= oldFineValue) {
+                    finalListOfUnloadedCargos = cargoThread.getUnloadedCargoList();
+                }
+
                 if (fineValue == 0) {
                     break;
+                }
+
+                if (numberOfCranes == 1 || fineValue <= oldFineValue) {
+                    oldFineValue = fineValue;
                 }
             }
 

@@ -66,7 +66,9 @@ public class CargoThread implements Runnable {
             new Thread(crane).start();
         }
 
-        waitUntilEveryCraneIsActive();
+        while (!isEveryCraneActive()) {
+
+        }
         getArrivingCargosIntoArrivedList();
         distributeCranesBetweenArrivedCargos();
         numberOfQueueEvents++;
@@ -81,7 +83,9 @@ public class CargoThread implements Runnable {
             }
 
             createChangeTimeEvent();
-            waitUntilEveryCraneMadeUnloading();
+            while (!didEveryCraneMakeUnloading()) {
+
+            }
             getArrivingCargosIntoArrivedList();
             updateConditionOfFinishedCargos();
             distributeCranesBetweenArrivedCargos();
@@ -91,6 +95,10 @@ public class CargoThread implements Runnable {
 
         for (Crane crane: arrayOfCranes) {
             crane.disable();
+        }
+
+        while (!isEveryCraneDisabled()) {
+
         }
     }
 
@@ -119,20 +127,34 @@ public class CargoThread implements Runnable {
         cargo.setActualArrivingTime(deviatedArrivingTime);
     }
 
-    private void waitUntilEveryCraneIsActive() {
+    private boolean isEveryCraneActive() { // ИЗМЕНИТЬ ЭТИ 2 ФУНКЦИИ НА ЧТО-ТО ДРУГОЕ?
         for (Crane crane: arrayOfCranes) {
-            while(!crane.isActive) {
-
+            if (!crane.isActive()) {
+                return false;
             }
         }
+
+        return true;
     }
 
-    private void waitUntilEveryCraneMadeUnloading() {
+    private boolean isEveryCraneDisabled() {
         for (Crane crane: arrayOfCranes) {
-            while(crane.changeTimeEvent) {
-
+            if (crane.isActive()) {
+                return false;
             }
         }
+
+        return true;
+    }
+
+    private boolean didEveryCraneMakeUnloading() {
+        for (Crane crane: arrayOfCranes) {
+            if (crane.hasTimeEvent()) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private double getNearestEventInMinutes() {
@@ -177,7 +199,7 @@ public class CargoThread implements Runnable {
             if (crane.isCraneBusy()) {
                 crane.createChangeTimeEvent();
             }
-        }
+        }   
     }
 
     private void distributeCranesBetweenArrivedCargos() {
@@ -214,7 +236,7 @@ public class CargoThread implements Runnable {
 
                 try {
                     Crane crane = getUnbusyCraneForWork();
-                    if (!crane.isActive) {
+                    if (!crane.isActive()) {
                         throw new RuntimeException();
                     }
 
@@ -279,7 +301,7 @@ public class CargoThread implements Runnable {
             isActive = false;
             isBusy = false;
             changeTimeEvent = false;
-            previousModelTime = new Time(1,0,0);
+            previousModelTime = new Time(1, 0, 0);
         }
 
         public void run() {
@@ -288,9 +310,16 @@ public class CargoThread implements Runnable {
             while (isActive) {
                 if (changeTimeEvent) {
                     unloadCargo();
-                    changeTimeEvent = false;
                 }
             }
+        }
+
+        public boolean isActive() {
+            return isActive;
+        }
+
+        public boolean hasTimeEvent() {
+            return changeTimeEvent;
         }
 
         public boolean isCraneBusy() {
@@ -305,7 +334,9 @@ public class CargoThread implements Runnable {
             return isBusy;
         }
 
-        public void disable() { isActive = false; }
+        public void disable() {
+            isActive = false;
+        }
 
         public void createChangeTimeEvent() {
             changeTimeEvent = true;
@@ -315,7 +346,9 @@ public class CargoThread implements Runnable {
             if (isActive) {
                 isBusy = true;
                 cargo = scheduleElementKeeper;
-                synchronized (this) { cargo.addCrane(); }
+                synchronized (this) {
+                    cargo.addCrane();
+                }
                 if (cargo.getNumberOfCranes() == 1) {
                     cargo.setStartUnloadingTime(modelTime);
                 }
@@ -324,19 +357,23 @@ public class CargoThread implements Runnable {
         }
 
         private synchronized void unloadCargo() {
-            if (!cargo.isFinished()) {
-                cargo.addMinutesUnloaded(modelTime.getTimeInMinutes() - previousModelTime.getTimeInMinutes());
-                previousModelTime.makeEqual(modelTime);
+            if (isBusy) {
+                if (!cargo.isFinished()) {
+                    cargo.addMinutesUnloaded(modelTime.getTimeInMinutes() - previousModelTime.getTimeInMinutes());
+                    previousModelTime.makeEqual(modelTime);
 
-                if (cargo.getMinutesUnloaded()
-                        >= cargo.getMinutesForUnloading()) {
-                    cargo.setFinishUnloadingTime(modelTime);
-                    cargo.finish();
+                    if (cargo.getMinutesUnloaded()
+                            >= cargo.getMinutesForUnloading()) {
+                        cargo.setFinishUnloadingTime(modelTime);
+                        cargo.finish();
+                        isBusy = false;
+                    }
+                } else {
                     isBusy = false;
                 }
-            } else {
-                isBusy = false;
             }
+
+            changeTimeEvent = false;
         }
     }
 }
