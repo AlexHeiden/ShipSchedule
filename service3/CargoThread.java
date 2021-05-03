@@ -1,6 +1,5 @@
 package service3;
 
-import service1.ScheduleElement;
 import service1.Time;
 
 import java.util.Collections;
@@ -19,15 +18,13 @@ public class CargoThread implements Runnable {
     private LinkedList<ScheduleElementKeeper> unloadedCargoList;
     private Crane[] arrayOfCranes;
     private int numberOfCranes;
-    private int numberOfBusyCranes;
     private int queueLength;
     private int numberOfQueueEvents;
     private Comparator<ScheduleElementKeeper> comparator = (element1, element2)
-            -> element1.getScheduleElement().getArrivingTime().
-            compareTo(element2.getScheduleElement().getArrivingTime());
+            -> element1.getActualArrivingTime().
+            compareTo(element2.getActualArrivingTime());
 
-    public CargoThread(LinkedList<ScheduleElementKeeper> arrivingCargoList, int numberOfCranes)
-    {
+    public CargoThread(LinkedList<ScheduleElementKeeper> arrivingCargoList, int numberOfCranes) {
         this.arrivingCargoList = new LinkedList<ScheduleElementKeeper>();
         for (ScheduleElementKeeper cargo: arrivingCargoList) {
             this.arrivingCargoList.add(new ScheduleElementKeeper(cargo));
@@ -40,7 +37,6 @@ public class CargoThread implements Runnable {
             arrayOfCranes[i] = new Crane();
         }
         this.numberOfCranes = numberOfCranes;
-        numberOfBusyCranes = 0;
         queueLength = 0;
         numberOfQueueEvents = 0;
 
@@ -49,7 +45,7 @@ public class CargoThread implements Runnable {
             addTimeDeviations(scheduleElementKeeper);
         }
 
-        Collections.sort(arrivingCargoList, comparator);
+        Collections.sort(this.arrivingCargoList, comparator);
 
         while (!this.arrivingCargoList.isEmpty()) {
             if (this.arrivingCargoList.getFirst().getActualArrivingTime().getDay() < 1) {
@@ -161,13 +157,15 @@ public class CargoThread implements Runnable {
         double minute = -1;
         for (ScheduleElementKeeper cargo: arrivedCargoList) {
             if (cargo.getNumberOfCranes() != 0) {
-                if ((cargo.getMinutesForUnloading()
-                        - cargo.getMinutesUnloaded())
-                        / cargo.getNumberOfCranes()
-                        < minute
-                        || minute < 0) {
-                    minute = (cargo.getMinutesForUnloading() - cargo.getMinutesUnloaded())
-                            / cargo.getNumberOfCranes();
+                double minutesForUnloadingLeft = ((double)cargo.getMinutesForUnloading()
+                        - (double)cargo.getMinutesUnloaded())
+                        / (double)cargo.getNumberOfCranes();
+                if (minutesForUnloadingLeft % 1 != 0) {
+                    minutesForUnloadingLeft = (int)(minutesForUnloadingLeft + 1);
+                }
+
+                if ((minutesForUnloadingLeft < minute) || (minute < 0)) {
+                    minute = minutesForUnloadingLeft;
                 }
             }
         }
@@ -204,7 +202,7 @@ public class CargoThread implements Runnable {
 
     private void distributeCranesBetweenArrivedCargos() {
         if (!arrivedCargoList.isEmpty()) {
-            while (numberOfCranes != numberOfBusyCranes) {
+            while (numberOfCranes != countBusyCranes()) {
                 boolean doesEveryCargoHaveTwoCranes = true;
                 int indexOfTheMostIdlingCargo = 0;
                 long minutesOfIdlingInPort = 0;
@@ -241,7 +239,6 @@ public class CargoThread implements Runnable {
                     }
 
                     crane.getCargoForCrane(arrivedCargoList.get(indexOfTheMostIdlingCargo));
-                    numberOfBusyCranes++;
                 } catch (RuntimeException e) {
                     e.printStackTrace();
                 }
@@ -259,22 +256,29 @@ public class CargoThread implements Runnable {
         return new Crane();
     }
 
+    private int countBusyCranes() {
+        int counter = 0;
+        for (Crane crane: arrayOfCranes) {
+            if (crane.isBusy) {
+                counter++;
+            }
+        }
+
+        return counter;
+    }
+
     private void updateConditionOfFinishedCargos() {
         if (!arrivedCargoList.isEmpty()) { //чекнуть, можно ли обойтись, тк вроде как можно
-            int numberOfFinishedCranes = 0;
             ListIterator<ScheduleElementKeeper> iterator = arrivedCargoList.listIterator(0);
 
             while (iterator.hasNext()) {
                 ScheduleElementKeeper cargo = iterator.next();
                 if (cargo.isFinished()) {
-                    numberOfFinishedCranes += cargo.getNumberOfCranes();
                     unloadedCargoList.add(cargo);
                     iterator.previous();
                     iterator.remove();
                 }
             }
-
-            numberOfBusyCranes -= numberOfFinishedCranes;
         }
     }
 
@@ -291,9 +295,9 @@ public class CargoThread implements Runnable {
 
     private class Crane implements Runnable {
 
-        private boolean isActive;
-        private boolean isBusy;
-        private boolean changeTimeEvent;
+        volatile private boolean isActive;
+        volatile private boolean isBusy;
+        volatile private boolean changeTimeEvent;
         private Time previousModelTime;
         private ScheduleElementKeeper cargo;
 

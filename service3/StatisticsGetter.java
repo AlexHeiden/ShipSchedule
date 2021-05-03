@@ -2,13 +2,13 @@ package service3;
 
 import service1.Time;
 
-import java.beans.IntrospectionException;
 import java.util.LinkedList;
 
 public class StatisticsGetter implements Runnable{
 
     public final static int numberOfCargoThreadLaunches = 1000;
     public final static int additionalCraneFine = 30000;
+    public final static int hourFine = 100;
     public final static int defaultNumberOfCranes = 1;
 
     private LinkedList<ScheduleElementKeeper> listForCargoThread;
@@ -23,6 +23,8 @@ public class StatisticsGetter implements Runnable{
         listForCargoThread = new LinkedList<>(list);
         numberOfCranes = 0;
         fineValue = 0;
+        queueLength = 0;
+        numberOfQueueEvents = 0;
     }
 
     public void run() {
@@ -47,7 +49,7 @@ public class StatisticsGetter implements Runnable{
                         e.printStackTrace();
                     }
 
-                    fineValue += getFineValue(cargoThread.getArrivedCargoList());
+                    fineValue += getFineValue(cargoThread);
                     fineValue += getFineValueFromCranes(numberOfCranes);
                     queueLength += cargoThread.getQueueLength();
                     numberOfQueueEvents += cargoThread.getNumberOfQueueEvents();
@@ -57,13 +59,13 @@ public class StatisticsGetter implements Runnable{
 
                 if (numberOfCranes == 1 || fineValue <= oldFineValue) {
                     finalListOfUnloadedCargos = cargoThread.getUnloadedCargoList();
-                }
 
-                if (fineValue == 0) {
-                    break;
-                }
+                    if (fineValue == 0) {
+                        oldFineValue = 0;
+                        numberOfCranes++;
+                        break;
+                    }
 
-                if (numberOfCranes == 1 || fineValue <= oldFineValue) {
                     oldFineValue = fineValue;
                 }
             }
@@ -73,77 +75,42 @@ public class StatisticsGetter implements Runnable{
         }
     }
 
-    public double getOverallFine() {
-        try {
-            if (numberOfCranes == 0) {
-                throw new RuntimeException();
-            }
-        } catch (RuntimeException e) {
-            e.printStackTrace();
-        }
+    public double getOverallFine() { return fineValue; }
 
-        return fineValue;
-    }
+    public int getOverallQueueLength() { return queueLength; }
 
-    public int getOverallQueueLength() {
-        try {
-            if (numberOfCranes == 0) {
-                throw new RuntimeException();
-            }
-        } catch (RuntimeException e) {
-            e.printStackTrace();
-        }
+    public int getOverallNumberOfQueueEvents() { return numberOfQueueEvents; }
 
-        return queueLength;
-    }
+    public int getFinalNumberOfCranes() { return numberOfCranes; }
 
-    public int getOverallNumberOfQueueEvents() {
-        try {
-            if (numberOfCranes == 0) {
-                throw new RuntimeException();
-            }
-        } catch (RuntimeException e) {
-            e.printStackTrace();
-        }
+    public LinkedList<ScheduleElementKeeper> getListForCargoThread() { return finalListOfUnloadedCargos; }
 
-        return numberOfQueueEvents;
-    }
+    private double getFineValue(CargoThread cargoThread) {
+        double fine = 0;
 
-    public int getFinalNumberOfCranes() {
-        try {
-            if (numberOfCranes == 0) {
-                throw new RuntimeException();
-            }
-        } catch (RuntimeException e) {
-            e.printStackTrace();
-        }
-
-        return numberOfCranes;
-    }
-
-    public LinkedList<ScheduleElementKeeper> getListForCargoThread() {
-        try {
-            if (numberOfCranes == 0) {
-                throw new RuntimeException();
-            }
-        } catch (RuntimeException e) {
-            e.printStackTrace();
-        }
-
-        return finalListOfUnloadedCargos;
-    }
-
-    private long getFineValue(LinkedList<ScheduleElementKeeper> cargoList) {
-        long fine = 0;
-
-        for (ScheduleElementKeeper cargo: cargoList) {
-            long theoreticalFinishTimeInMinutes = cargo.getScheduleElement().getArrivingTime().getTimeInMinutes()
+        for (ScheduleElementKeeper cargo: cargoThread.getArrivedCargoList()) {
+            long theoreticalFinishTimeInMinutes = Math.max(
+                    cargo.getScheduleElement().getArrivingTime().getTimeInMinutes(),
+                    cargo.getActualArrivingTime().getTimeInMinutes())
                     + cargo.getScheduleElement().getUnloadingTime().getTimeInMinutes();
-            long actualFinishTimeInMinutes = cargo.getFinishUnloadingTime().getTimeInMinutes();
-            long delayUnloadingMinutes = actualFinishTimeInMinutes = theoreticalFinishTimeInMinutes;
+            Time maxTime = new Time (31, 0, 0);
+            long delayUnloadingMinutes = maxTime.getTimeInMinutes() - theoreticalFinishTimeInMinutes;
 
             if (delayUnloadingMinutes >= 0) {
-                fine += delayUnloadingMinutes / (Time.maxMinute + 1);
+                fine += (double)delayUnloadingMinutes / (double)(Time.maxMinute + 1) * (double)hourFine;
+            }
+        }
+
+        for (ScheduleElementKeeper cargo: cargoThread.getUnloadedCargoList()) {
+            long theoreticalFinishTimeInMinutes = Math.max(
+                    cargo.getScheduleElement().getArrivingTime().getTimeInMinutes(),
+                    cargo.getActualArrivingTime().getTimeInMinutes())
+                    + cargo.getScheduleElement().getUnloadingTime().getTimeInMinutes();
+            long actualFinishTimeInMinutes = cargo.getFinishUnloadingTime().getTimeInMinutes();
+            long delayUnloadingMinutes = actualFinishTimeInMinutes - theoreticalFinishTimeInMinutes;
+
+            if (delayUnloadingMinutes >= 0) {
+                fine += (double)delayUnloadingMinutes / (double)(Time.maxMinute + 1) * (double)hourFine;
             }
         }
 

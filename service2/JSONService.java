@@ -13,13 +13,15 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.InputMismatchException;
 import java.util.LinkedList;
+import java.util.Scanner;
 
 public class JSONService
 {
     public static final String scheduleFileName = System.getProperty("user.dir") + "/scheduleFile.json";
 
-    private LinkedList<ScheduleElement> scheduleList;
+    private static LinkedList<ScheduleElement> scheduleList;
 
     public JSONService(int numberOfShips,
                        double minWeight,
@@ -45,9 +47,61 @@ public class JSONService
         }
     }
 
-    public void addElementToSchedule(ScheduleElement scheduleElement)
-    {
-        scheduleList.add(scheduleElement);
+    public static void createNewShips() {
+        System.out.println("Would you like to add ships into schedule? y/n ");
+        Scanner in = new Scanner(System.in);
+        try {
+            String acception = in.nextLine();
+            if (acception.equals("y")) {
+                System.out.println("How many ships would you like to input: ");
+
+                int numberOfShips = in.nextInt();
+                if (numberOfShips <= 0) {
+                    throw new InputMismatchException();
+                }
+
+                for (int i = 0; i < numberOfShips; i++) {
+                    in.nextLine();
+                    System.out.println("Input ship's name: ");
+                    String name = in.nextLine();
+                    if (name.isEmpty()) {
+                        throw new InputMismatchException();
+                    }
+
+                    System.out.println("Input ship's arriving time in the format dd:hh:mm: ");
+                    Time time = new Time(in.nextLine());
+
+                    System.out.println("Choose cargo type of your ship (loose, liquid or container): ");
+                    String cargoTypeName = in.nextLine();
+                    if (cargoTypeName.isEmpty()) {
+                        throw new InputMismatchException();
+                    }
+
+                    CargoType cargoType;
+                    if (cargoTypeName.equals("loose")) {
+                        cargoType = CargoType.LOOSE;
+                    } else if (cargoTypeName.equals("liquid")) {
+                        cargoType = CargoType.LIQUID;
+                    } else if (cargoTypeName.equals("container")) {
+                        cargoType = CargoType.CONTAINER;
+                    } else {
+                        throw new InputMismatchException();
+                    }
+
+                    System.out.println("Input weight of the cargo: ");
+                    if (!in.hasNextDouble()) {
+                        throw new InputMismatchException();
+                    }
+                    double weight = in.nextDouble();
+
+                    scheduleList.add(new ScheduleElement(time, name, cargoType, weight));
+                }
+            }
+        }
+        catch (InputMismatchException e) {
+            e.printStackTrace();
+        }
+        in.close();
     }
 
     public static LinkedList<ScheduleElement> getScheduleListFromJSON()
