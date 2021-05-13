@@ -1,4 +1,4 @@
-package service1;
+package ru.stepanov.springproject.service1;
 
 import java.security.InvalidParameterException;
 
@@ -21,18 +21,11 @@ public class Time implements Comparable<Time>
 
     public Time(long day, long hour, long minute)
     {
-        try
+        if ((hour < 0) || (hour > maxHour) || (minute < 0) || (minute > maxMinute))
         {
-            if ((hour < 0) || (hour > maxHour) || (minute < 0) || (minute > maxMinute))
-            {
-                throw new IllegalArgumentException();
-            }
+            throw new IllegalArgumentException();
         }
-        catch (IllegalArgumentException e)
-        {
-            System.out.println("You should input appropriate time");
-            System.exit(-1);
-        }
+
         this.day = day;
         this.hour = hour;
         this.minute = minute;
@@ -46,53 +39,32 @@ public class Time implements Comparable<Time>
 
     public Time(String string)
     {
-        try
+        if (string.length() != 8)
         {
-            if (string.length() != 8)
-            {
-                throw new IllegalArgumentException();
-            }
+            throw new IllegalArgumentException();
         }
-        catch (IllegalArgumentException e)
-        {
-            System.out.println("Time must contain 8 symbols");
-            System.exit(-1);
-        }
+
 
         String[] timeParameters = string.split(":");
 
-        try {
-                long tempDay = Long.parseLong(timeParameters[0]);
-                day = tempDay;
+        long tempDay = Long.parseLong(timeParameters[0]);
+        day = tempDay;
 
-            try {
-                long tempHour = Long.parseLong(timeParameters[1]);
+        long tempHour = Long.parseLong(timeParameters[1]);
 
-                if (tempHour < 0 || tempHour > maxHour) {
-                    throw new IllegalArgumentException();
-                }
-
-                hour = tempHour;
-            } catch (IllegalArgumentException e) {
-                e.printStackTrace();
-            }
-
-            try {
-                long tempMinute = Long.parseLong(timeParameters[2]);
-
-                if (tempMinute < 0 || tempMinute > maxMinute) {
-                    throw new IllegalArgumentException();
-                }
-
-                minute = tempMinute;
-            } catch (IllegalArgumentException e) {
-                e.printStackTrace();
-            }
+        if (tempHour < 0 || tempHour > maxHour) {
+            throw new IllegalArgumentException();
         }
-        catch (Exception e)
-        {
-            e.printStackTrace();
+
+        hour = tempHour;
+
+        long tempMinute = Long.parseLong(timeParameters[2]);
+
+        if (tempMinute < 0 || tempMinute > maxMinute) {
+            throw new IllegalArgumentException();
         }
+
+        minute = tempMinute;
     }
 
     public void makeEqual(Time time) {
@@ -221,5 +193,9 @@ public class Time implements Comparable<Time>
         int hour = (int)(Math.random() * (maxHour));
         int minute = (int)(Math.random() * (maxMinute));
         return new Time(day, hour, minute);
+    }
+
+    public static String toString(Time time) {
+        return time.getDay() + ":" + time.getHour() + ":" + time.getMinute();
     }
 }

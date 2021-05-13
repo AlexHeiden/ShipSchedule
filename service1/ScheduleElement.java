@@ -1,4 +1,4 @@
-package service1;
+package ru.stepanov.springproject.service1;
 
 import java.security.InvalidParameterException;
 

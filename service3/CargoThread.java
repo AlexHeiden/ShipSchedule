@@ -1,6 +1,6 @@
-package service3;
+package ru.stepanov.springproject.service3;
 
-import service1.Time;
+import ru.stepanov.springproject.service1.Time;
 
 import java.util.Collections;
 import java.util.Comparator;

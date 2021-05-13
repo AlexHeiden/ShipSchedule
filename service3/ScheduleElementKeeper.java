@@ -1,7 +1,7 @@
-package service3;
+package ru.stepanov.springproject.service3;
 
-import service1.ScheduleElement;
-import service1.Time;
+import ru.stepanov.springproject.service1.ScheduleElement;
+import ru.stepanov.springproject.service1.Time;
 
 public class ScheduleElementKeeper {
 
@@ -40,11 +40,6 @@ public class ScheduleElementKeeper {
     public void addCrane() { numberOfCranes++; }
     public void addMinutesUnloaded(long minutes) { minutesUnloaded += minutes; }
     public void addMinutesForUnloading(long minutes) { minutesForUnloading += minutes; }
-    public void checkMinutesForUnloading() {
-        minutesForUnloading = scheduleElement
-            .getUnloadingTime()
-            .getTimeInMinutes();
-    }
     public void setActualArrivingTime(Time time)
     {
         actualArrivingTime = new Time(time);
@@ -53,6 +48,7 @@ public class ScheduleElementKeeper {
     public void setFinishUnloadingTime(Time time) { finishUnloadingTime = new Time(time); }
     public ScheduleElement getScheduleElement() { return scheduleElement; }
     public int getNumberOfCranes() { return numberOfCranes; }
+    public String getName() { return scheduleElement.getName(); }
     public long getMinutesUnloaded() { return minutesUnloaded; }
     public long getMinutesForUnloading() { return minutesForUnloading; }
     public Time getActualArrivingTime() { return actualArrivingTime; }
@@ -60,7 +56,13 @@ public class ScheduleElementKeeper {
     public Time getFinishUnloadingTime() { return finishUnloadingTime; }
     public boolean isFinished() { return isFinished; }
 
-    public void print() {
+    public void checkMinutesForUnloading() {
+        minutesForUnloading = scheduleElement
+                .getUnloadingTime()
+                .getTimeInMinutes();
+    }
+
+    public Time getWaitForStartOfUnloadingTime() {
         Time waitForStartUnloadingTime = new Time(0,0,0);
         long waitMinutes = startUnloadingTime.getTimeInMinutes()
                 - actualArrivingTime.getTimeInMinutes();
@@ -69,9 +71,20 @@ public class ScheduleElementKeeper {
         }
         waitForStartUnloadingTime.addMinutes(waitMinutes);
 
+        return waitForStartUnloadingTime;
+    }
+
+    public Time getUnloadingDuration() {
         Time unloadingDuration = new Time(0,0,0);
         unloadingDuration.addMinutes(finishUnloadingTime.getTimeInMinutes()
                 - startUnloadingTime.getTimeInMinutes());
+
+        return unloadingDuration;
+    }
+
+    public void print() {
+        Time waitForStartUnloadingTime = getWaitForStartOfUnloadingTime();
+        Time unloadingDuration = getUnloadingDuration();
 
         System.out.println(getScheduleElement().getName());
         System.out.println("Arriving time: ");

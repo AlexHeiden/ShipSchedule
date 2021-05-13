@@ -1,9 +1,8 @@
-package service3;
+package ru.stepanov.springproject.service3;
 
-import service1.CargoType;
-import service1.ScheduleElement;
-import service1.Time;
-import service2.JSONService;
+import ru.stepanov.springproject.service1.CargoType;
+import ru.stepanov.springproject.service1.ScheduleElement;
+import ru.stepanov.springproject.service1.Time;
 
 import java.util.Collections;
 import java.util.Comparator;
@@ -12,15 +11,31 @@ import java.util.LinkedList;
 public class ModelPreparer {
 
     private LinkedList<ScheduleElement> listForJSON;
-    private LinkedList<ScheduleElementKeeper> containerList = new LinkedList<ScheduleElementKeeper>();
-    private LinkedList<ScheduleElementKeeper> looseList = new LinkedList<ScheduleElementKeeper>();
-    private LinkedList<ScheduleElementKeeper> liquidList = new LinkedList<ScheduleElementKeeper>();
+    private LinkedList<ScheduleElementKeeper> containerList;
+    private LinkedList<ScheduleElementKeeper> looseList;
+    private LinkedList<ScheduleElementKeeper> liquidList;
+    private LinkedList<ScheduleElementKeeper> overallListOfUnloadedShips;
+    private int overallNumberOfUnloadedShips;
+    private int overallQueueLength;
+    private int overallNumberOfQueueEvents;
+    private double averageQueueLength;
+    private double overallFineValue;
+    private int requiredNumberOfContainerCranes;
+    private int requiredNumberOfLooseCranes;
+    private int requiredNumberOfLiquidCranes;
+    private double averageQueueWaitInMinutes;
+    private double averageUnloadingDelayInMinutes;
+    private long maxUnloadingDelayInMinutes;
     private Comparator<ScheduleElementKeeper> comparator = (element1, element2)
             -> element1.getActualArrivingTime().
             compareTo(element2.getActualArrivingTime());
 
-    public ModelPreparer() {
-        listForJSON = JSONService.getScheduleListFromJSON();
+    public ModelPreparer(LinkedList<ScheduleElement> scheduleList) {
+        listForJSON = new LinkedList<>(scheduleList);
+
+        containerList = new LinkedList<ScheduleElementKeeper>();
+        looseList = new LinkedList<ScheduleElementKeeper>();
+        liquidList = new LinkedList<ScheduleElementKeeper>();
 
         for (ScheduleElement scheduleElement: listForJSON) {
             if (scheduleElement.getCargoType() == CargoType.CONTAINER)
@@ -57,37 +72,37 @@ public class ModelPreparer {
             }
         }
 
-        LinkedList<ScheduleElementKeeper> overallList = new LinkedList<>();
-        overallList.addAll(containerStatistics.getListForCargoThread());
-        overallList.addAll(looseStatistics.getListForCargoThread());
-        overallList.addAll(liquidStatistics.getListForCargoThread());
-        Collections.sort(overallList, comparator);
+        overallListOfUnloadedShips = new LinkedList<>();
+        overallListOfUnloadedShips.addAll(containerStatistics.getListForCargoThread());
+        overallListOfUnloadedShips.addAll(looseStatistics.getListForCargoThread());
+        overallListOfUnloadedShips.addAll(liquidStatistics.getListForCargoThread());
+        Collections.sort(overallListOfUnloadedShips, comparator);
 
-        int overallNumberOfUnloadedShips = overallList.size();
+        overallNumberOfUnloadedShips = overallListOfUnloadedShips.size();
 
-        int overallQueueLength = containerStatistics.getOverallQueueLength()
+        overallQueueLength = containerStatistics.getOverallQueueLength()
                 + looseStatistics.getOverallQueueLength()
                 + liquidStatistics.getOverallQueueLength();
 
-        int overallNumberOfQueueEvents = containerStatistics.getOverallNumberOfQueueEvents()
+        overallNumberOfQueueEvents = containerStatistics.getOverallNumberOfQueueEvents()
                 + looseStatistics.getOverallNumberOfQueueEvents()
                 + liquidStatistics.getOverallNumberOfQueueEvents();
 
-        double averageQueueLength = overallQueueLength / overallNumberOfQueueEvents;
+        averageQueueLength = overallQueueLength / overallNumberOfQueueEvents;
 
-        double overallFineValue = containerStatistics.getOverallFine()
+        overallFineValue = containerStatistics.getOverallFine()
                 + looseStatistics.getOverallFine()
                 + liquidStatistics.getOverallFine();
 
-        double requiredNumberOfContainerCranes = containerStatistics.getFinalNumberOfCranes();
-        double requiredNumberOfLooseCranes = looseStatistics.getFinalNumberOfCranes();
-        double requiredNumberOfLiquidCranes = liquidStatistics.getFinalNumberOfCranes();
+        requiredNumberOfContainerCranes = containerStatistics.getFinalNumberOfCranes();
+        requiredNumberOfLooseCranes = looseStatistics.getFinalNumberOfCranes();
+        requiredNumberOfLiquidCranes = liquidStatistics.getFinalNumberOfCranes();
 
-        double averageQueueWaitInMinutes = 0;
-        double averageUnloadingDelayInMinutes = 0;
-        long maxUnloadingDelayInMinutes = 0;
+        averageQueueWaitInMinutes = 0;
+        averageUnloadingDelayInMinutes = 0;
+        maxUnloadingDelayInMinutes = 0;
 
-        for (ScheduleElementKeeper cargo: overallList) {
+        for (ScheduleElementKeeper cargo: overallListOfUnloadedShips) {
             double temp = cargo.getStartUnloadingTime().getTimeInMinutes()
                     - cargo.getActualArrivingTime().getTimeInMinutes();
 
@@ -111,24 +126,45 @@ public class ModelPreparer {
 
         averageQueueWaitInMinutes /= overallNumberOfUnloadedShips;
         averageUnloadingDelayInMinutes /= overallNumberOfUnloadedShips;
+    }
 
-        System.out.println("The results of model work");
-        System.out.println("Number of unloaded ships: " + overallNumberOfUnloadedShips);
-        System.out.println("Average queue length: " + averageQueueLength);
-        System.out.println("Average queue wait in hours: " + averageQueueWaitInMinutes
-                / (Time.maxMinute + 1));
-        System.out.println("Maximum unloading delay in hours: " + maxUnloadingDelayInMinutes
-                / (Time.maxMinute + 1));
-        System.out.println("Average unloading delay in hours: " + averageUnloadingDelayInMinutes
-                / (Time.maxMinute + 1));
-        System.out.println("Overall fine: " + overallFineValue);
-        System.out.println("Required number of CONTAINER cranes: " + requiredNumberOfContainerCranes);
-        System.out.println("Required number of LOOSE cranes: " + requiredNumberOfLooseCranes);
-        System.out.println("Required number of LIQUID cranes: " + requiredNumberOfLiquidCranes);
-        System.out.println();
+    public LinkedList<ScheduleElementKeeper> getOverallListOfUnloadedShips() {
+        return overallListOfUnloadedShips;
+    }
 
-        for (ScheduleElementKeeper cargo: overallList) {
-            cargo.print();
-        }
+    public int getOverallNumberOfUnloadedShips() {
+        return overallNumberOfUnloadedShips;
+    }
+
+    public double getAverageQueueLength() {
+        return averageQueueLength;
+    }
+
+    public double getOverallFineValue() {
+        return overallFineValue;
+    }
+
+    public int getRequiredNumberOfContainerCranes() {
+        return requiredNumberOfContainerCranes;
+    }
+
+    public int getRequiredNumberOfLooseCranes() {
+        return requiredNumberOfLooseCranes;
+    }
+
+    public int getRequiredNumberOfLiquidCranes() {
+        return requiredNumberOfLiquidCranes;
+    }
+
+    public double getAverageQueueWaitInHours() {
+        return averageQueueWaitInMinutes / (Time.maxMinute + 1);
+    }
+
+    public double getAverageUnloadingDelayInHours() {
+        return averageUnloadingDelayInMinutes / (Time.maxMinute + 1);
+    }
+
+    public double getMaxUnloadingDelayInHours() {
+        return maxUnloadingDelayInMinutes / (Time.maxMinute + 1);
     }
 }
