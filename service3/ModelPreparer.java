@@ -128,6 +128,44 @@ public class ModelPreparer {
         averageUnloadingDelayInMinutes /= overallNumberOfUnloadedShips;
     }
 
+    public static String toString(ModelPreparer modelPreparer) {
+        StringBuilder stringBuilder = new StringBuilder();
+        stringBuilder.append("Number of unloaded ships:"
+                + "\n" + modelPreparer.getOverallNumberOfUnloadedShips()
+                + "\n" + "Average queue length:"
+                + "\n" + modelPreparer.getAverageQueueLength()
+                + "\n" + "Average queue wait in hours:"
+                + "\n" + modelPreparer.getAverageQueueWaitInHours()
+                + "\n" + "Max unloading delay in hours:"
+                + "\n" + modelPreparer.getMaxUnloadingDelayInHours()
+                + "\n" + "Average unloading delay in hours:"
+                + "\n" + modelPreparer.getAverageUnloadingDelayInHours()
+                + "\n" + "Overall fine value:"
+                + "\n" + modelPreparer.getOverallFineValue()
+                + "\n" + "Required number of container cranes:"
+                + "\n" + modelPreparer.getRequiredNumberOfContainerCranes()
+                + "\n" + "Required number of loose cranes:"
+                + "\n" + modelPreparer.getRequiredNumberOfLooseCranes()
+                + "\n" + "Required number of liquid cranes:"
+                + "\n" + modelPreparer.getRequiredNumberOfLiquidCranes()
+                + "\n" + "Unloaded ships' list:");
+
+        for (ScheduleElementKeeper cargo: modelPreparer.getOverallListOfUnloadedShips()) {
+            stringBuilder.append("\n" + "Name:"
+                    + "\n" + cargo.getName()
+                    + "\n" + "Arriving time:"
+                    + "\n" + Time.toString(cargo.getActualArrivingTime())
+                    + "\n" + "Waiting for start of unloading time:"
+                    + "\n" + Time.toString(cargo.getWaitForStartOfUnloadingTime())
+                    + "\n" + "Unloading start time:"
+                    + "\n" + Time.toString(cargo.getStartUnloadingTime())
+                    + "\n" + "Unloading duration"
+                    + "\n" + Time.toString(cargo.getUnloadingDuration()));
+        }
+
+        return stringBuilder.toString();
+    }
+
     public LinkedList<ScheduleElementKeeper> getOverallListOfUnloadedShips() {
         return overallListOfUnloadedShips;
     }

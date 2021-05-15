@@ -84,9 +84,7 @@ public class Schedule {
             stringBuilder.append("\n" + scheduleElement.getName()
                     + "\n" + scheduleElement.getCargoType().toString()
                     + "\n" + scheduleElement.getWeight()
-                    + "\n" + scheduleElement.getArrivingTime().getDay()
-                    + "\n" + scheduleElement.getArrivingTime().getHour()
-                    + "\n" + scheduleElement.getArrivingTime().getMinute());
+                    + "\n" + Time.toString(scheduleElement.getArrivingTime()));
         }
 
         return stringBuilder.toString();
@@ -95,11 +93,12 @@ public class Schedule {
     public static LinkedList<ScheduleElement> getScheduleListFromString(String string) {
         LinkedList<ScheduleElement> scheduleList = new LinkedList<>();
         String[] scheduleListElements = string.split("\n");
-        int numberOfScheduleElementParts = 6;
+        int numberOfScheduleElementParts = 4;
 
         int size = Integer.parseInt(scheduleListElements[0]);
         for (int i = 0; i < size * numberOfScheduleElementParts; i += numberOfScheduleElementParts) {
             String name = scheduleListElements[i + 1];
+
             CargoType cargoType;
             String cargoName = scheduleListElements[i + 2];
             if (cargoName.equals(CargoType.CONTAINER.toString())) {
@@ -111,10 +110,7 @@ public class Schedule {
             }
 
             double weight = Double.parseDouble(scheduleListElements[i + 3]);
-            long day = Long.parseLong(scheduleListElements[i + 4]);
-            long hour = Long.parseLong(scheduleListElements[i + 5]);
-            long minute = Long.parseLong(scheduleListElements[i + 6]);
-            Time arrivingTime = new Time(day, hour, minute);
+            Time arrivingTime = new Time(scheduleListElements[i + 4]);
 
             scheduleList.add(new ScheduleElement(arrivingTime, name, cargoType, weight));
         }

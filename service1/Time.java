@@ -196,6 +196,23 @@ public class Time implements Comparable<Time>
     }
 
     public static String toString(Time time) {
-        return time.getDay() + ":" + time.getHour() + ":" + time.getMinute();
+        StringBuilder stringBuilder = new StringBuilder();
+
+        if (time.getDay() / 10 < 1) {
+            stringBuilder.append("0");
+        }
+        stringBuilder.append(time.getDay() + ":");
+
+        if (time.getHour() / 10 < 1) {
+            stringBuilder.append("0");
+        }
+        stringBuilder.append(time.getHour() + ":");
+
+        if (time.getMinute() / 10 < 1) {
+            stringBuilder.append("0");
+        }
+        stringBuilder.append(time.getMinute());
+
+        return stringBuilder.toString();
     }
 }

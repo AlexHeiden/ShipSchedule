@@ -46,7 +46,7 @@ public class SpringProjectApplication {
                         HttpStatus.OK);
     }
 
-    @GetMapping("/service2/get-string-schedule")
+    @PostMapping("/service2/create-string-schedule")
     public ResponseEntity<String> getScheduleForUser(@RequestParam("shipnumber") int numberOfShipsToStore,
                                                          @RequestParam("min-weight") double minWeight,
                                                          @RequestParam("max-weight") double maxWeight) {
@@ -78,6 +78,23 @@ public class SpringProjectApplication {
         return new ResponseEntity<String>(stringSchedule, HttpStatus.OK);
     }
 
+    @GetMapping("/service2/get-string-schedule")
+    public ResponseEntity<String> getScheduleForUser() {
+        try {
+            JSONObject schedule = (JSONObject) new JSONParser().parse(new FileReader
+                    (System.getProperty("user.dir") + "/" + scheduleFileName + ".json"));
+            LinkedList<ScheduleElement> scheduleList = JSONService.getScheduleListFromJSON(schedule);
+            return new ResponseEntity<String>(Schedule.toString(scheduleList), HttpStatus.OK);
+        }
+        catch (IOException e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "IOException was thrown." +
+                    "This file probably doesn't exist.");
+        }
+        catch(ParseException e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Parse exception was thrown");
+        }
+    }
+
     @GetMapping("/service2/get-json-schedule-by-name")
     public ResponseEntity<String> getScheduleByName(@RequestParam("file-name") String fileName) {
         if (!fileName.equals(scheduleFileName)) {
@@ -104,7 +121,7 @@ public class SpringProjectApplication {
     }
 
     @GetMapping("/service2/get-statistics")
-    public ResponseEntity<JSONObject> getStatistics() {
+    public ResponseEntity<String> getStatistics() {
         RestTemplate restTemplate = new RestTemplate();
         String url = "http://localhost:8080/service3/create-statistics";
         ResponseEntity<HttpStatus> statusResponseEntity = restTemplate
@@ -116,7 +133,8 @@ public class SpringProjectApplication {
         try {
             JSONObject schedule = (JSONObject) new JSONParser().parse(new FileReader
                     (System.getProperty("user.dir") + "/" + statisticsFileName + ".json"));
-            return new ResponseEntity<JSONObject>(schedule, HttpStatus.OK);
+            String statistics = JSONService.JSONToModelString(schedule);
+            return new ResponseEntity<String>(statistics, HttpStatus.OK);
         }
         catch (IOException e) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "IOException was thrown." +
@@ -127,12 +145,12 @@ public class SpringProjectApplication {
         }
     }
 
-    @PostMapping(value = "/service2/post-statistics", consumes = "application/json", produces = "application/json")
-    public ResponseEntity<HttpStatus> postStatistics(@RequestBody JSONObject statistics) {
+    @PostMapping(value = "/service2/post-statistics")
+    public ResponseEntity<HttpStatus> postStatistics(@RequestBody String statistics) {
         try {
             FileWriter fileWriter = new FileWriter(System.getProperty("user.dir") + "/"
                     + statisticsFileName + ".json");
-            fileWriter.write(statistics.toJSONString());
+            fileWriter.write(JSONService.modelStringToJSON(statistics).toJSONString());
             fileWriter.close();
         }
         catch(IOException e) {
@@ -146,7 +164,7 @@ public class SpringProjectApplication {
     public ResponseEntity<HttpStatus> postNewShip(@RequestBody JSONObject jsonShip) {
         String name = jsonShip.get("name").toString();
         if (name.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You can't input empty names");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid name");
         }
 
         Time arrivingTime;
@@ -154,7 +172,7 @@ public class SpringProjectApplication {
             arrivingTime = new Time(jsonShip.get("arrivingTime").toString());
         }
         catch (IllegalArgumentException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Do not input invalid time");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid time");
         }
 
         CargoType cargoType;
@@ -163,8 +181,10 @@ public class SpringProjectApplication {
             cargoType = CargoType.CONTAINER;
         } else if (cargoName.equals(CargoType.LOOSE.toString())) {
             cargoType = CargoType.LOOSE;
-        } else {
+        } else if (cargoName.equals(CargoType.LOOSE.toString())){
             cargoType = CargoType.LIQUID;
+        } else {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid cargo type");
         }
 
         double weight;
@@ -172,7 +192,7 @@ public class SpringProjectApplication {
             weight = Double.parseDouble(jsonShip.get("weight").toString());
         }
         catch (NumberFormatException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Do not input invalid weight");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid weight");
         }
 
         JSONObject schedule;
@@ -206,16 +226,16 @@ public class SpringProjectApplication {
     }
 
     @PostMapping(value = "/service3/create-statistics", consumes = "application/json", produces = "application/json")
-    public ResponseEntity<HttpStatus> createAndSendStatistics(@RequestBody JSONObject statistics) {
+    public ResponseEntity<HttpStatus> createAndSendStatistics(@RequestBody JSONObject nothing) {
         RestTemplate restTemplate = new RestTemplate();
         String url = "http://localhost:8080/service2/get-json-schedule-by-name?file-name=" + scheduleFileName;
         ResponseEntity<String> responseEntity = restTemplate.getForEntity(url, String.class);
         String stringSchedule = responseEntity.getBody();
         ModelPreparer modelPreparer = new ModelPreparer(Schedule.getScheduleListFromString(stringSchedule));
-        JSONObject jsonStatistics = JSONService.toJSON(modelPreparer);
+        String statistics = ModelPreparer.toString(modelPreparer);
         url = "http://localhost:8080/service2/post-statistics";
         ResponseEntity<HttpStatus> statusResponseEntity = restTemplate
-                .postForEntity(url, jsonStatistics, HttpStatus.class);
+                .postForEntity(url, statistics, HttpStatus.class);
         if (statusResponseEntity.getStatusCode() == HttpStatus.INTERNAL_SERVER_ERROR) {
             return new ResponseEntity<HttpStatus>(HttpStatus.INTERNAL_SERVER_ERROR, HttpStatus.INTERNAL_SERVER_ERROR);
         }
